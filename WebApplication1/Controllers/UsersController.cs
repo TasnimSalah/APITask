@@ -9,6 +9,8 @@ using WebApplication1.Data;
 using WebApplication1.Models;
 using WebApplication1.ViewModels;
 using WebApplication1.Extensions;
+using WebApplication1.Services;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace WebApplication1.Controllers
 {
@@ -17,10 +19,12 @@ namespace WebApplication1.Controllers
     public class UsersController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly IAuthService _authService;
 
-        public UsersController(AppDbContext context)
+        public UsersController(AppDbContext context , IAuthService authService)
         {
             _context = context;
+            this._authService = authService;
         }
 
 
@@ -43,6 +47,11 @@ namespace WebApplication1.Controllers
             if (!ModelState.IsValid)
                 return BadRequest();
 
+            if (UserExists(model.Email))
+            {
+                return Conflict(new { ErrorMessage = "User Already Exist" });
+            }
+
             var User = new User()
             {
                 Email = model.Email,
@@ -57,27 +66,24 @@ namespace WebApplication1.Controllers
             {
                 _context.Users.Add(User);
                 await _context.SaveChangesAsync();
+                var token = await _authService.CreateJwtToken(User);
+                var result = new AddUserResponseVm()
+                {
+                    AccessToken = new JwtSecurityTokenHandler().WriteToken(token),
+                    Id = User.Id
+                };
+                return Ok(result);
             }
-            catch (DbUpdateException exc)
+            catch (Exception exc)
             {
-                if (UserExists(User.Id))
-                {
-                    return Conflict();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
-            // return CreatedAtAction("GetUser", new { id = user.Id }, user);
-            return Ok();
+                return Conflict();
+            }       
         }
 
 
-        private bool UserExists(string id)
+        private bool UserExists(string email)
         {
-            return _context.Users.Any(e => e.Id == id);
+            return _context.Users.Any(e => e.Email == email);
         }
     }
 }
