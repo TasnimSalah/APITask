@@ -11,6 +11,7 @@ using WebApplication1.ViewModels;
 using WebApplication1.Extensions;
 using WebApplication1.Services;
 using System.IdentityModel.Tokens.Jwt;
+using Microsoft.AspNetCore.Authorization;
 
 namespace WebApplication1.Controllers
 {
@@ -27,18 +28,28 @@ namespace WebApplication1.Controllers
             this._authService = authService;
         }
 
-
         [HttpGet("{id}")]
         public async Task<ActionResult<User>> GetUser(string id)
         {
-            var user = await _context.Users.FindAsync(id);
+            if (string.IsNullOrEmpty(id))
+                return BadRequest();
 
+            var user = await _context.Users.FindAsync(id);
             if (user == null)
             {
                 return NotFound();
             }
+            if (!user.MarketingConsent)
+            {
+                return Ok(new
+                {
+                    FirstName = user.FirstName , 
+                    LastName = user.LastName,
+                    MarketingConsent = user.MarketingConsent
+                });
+            }
 
-            return user;
+            return Ok(user);
         }
 
         [HttpPost]

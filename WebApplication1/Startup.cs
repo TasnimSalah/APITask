@@ -16,6 +16,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using WebApplication1.Data;
+using WebApplication1.Filters;
 using WebApplication1.Helpers;
 using WebApplication1.Services;
 
@@ -65,6 +66,7 @@ namespace WebApplication1
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "WebApplication1", Version = "v1" });
+                c.OperationFilter<SwaggerHeader>();
             });
         }
 
